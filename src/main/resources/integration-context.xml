@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-scripting="http://www.springframework.org/schema/integration/scripting"
+	xmlns:jms="http://www.springframework.org/schema/integration/jms"
+	xmlns:stream="http://www.springframework.org/schema/integration/stream"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/integration
+		http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/stream
+      	http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
+      	http://www.springframework.org/schema/integration/jms
+		http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
+      	http://www.springframework.org/schema/integration/scripting
+      	http://www.springframework.org/schema/integration/scripting/spring-integration-scripting.xsd
+      	http://www.springframework.org/schema/task
+      	http://www.springframework.org/schema/task/spring-task.xsd">
+
+	<!-- use sessionTransacted=true and rollbackOnException=true -->
+	<!-- TODO : needs to improve retry things with spring-retry using Stateful -->
+
+	<bean id="visitUrlMessageListenerContainer"
+		class="com.vishalzanzrukia.crawler.integration.CustomMessageListenerContainer">
+		<constructor-arg value="visitUrlMessageListenerContainer" />
+		<constructor-arg value="1" />
+		<property name="connectionFactory"
+			ref="jms.url.cachingConnectionFactory" />
+		<property name="destination" ref="visitUrlQ" />
+		<property name="concurrentConsumers" value="1" />
+		<property name="maxConcurrentConsumers" value="1" />
+	</bean>
+
+	<bean id="visitUrlChannelPublishingMessageListener"
+		class="org.springframework.integration.jms.ChannelPublishingJmsMessageListener" />
+
+	<bean id="productUrlMessageListenerContainer"
+		class="com.vishalzanzrukia.crawler.integration.CustomMessageListenerContainer">
+		<constructor-arg value="productUrlMessageListenerContainer" />
+		<constructor-arg value="1" />
+		<property name="connectionFactory"
+			ref="jms.product.cachingConnectionFactory" />
+		<property name="destination" ref="productUrlQ" />
+		<property name="concurrentConsumers" value="1" />
+		<property name="maxConcurrentConsumers" value="1" />
+	</bean>
+
+	<bean id="productUrlChannelPublishingMessageListener"
+		class="org.springframework.integration.jms.ChannelPublishingJmsMessageListener" />
+
+	<bean id="urlSplitter" class="com.vishalzanzrukia.crawler.integration.UrlSplitter" />
+	<bean id="productSplitter" class="com.vishalzanzrukia.crawler.integration.ProductSplitter" />
+
+	<bean id="outputProductUrlQ" class="org.apache.activemq.command.ActiveMQTopic">
+		<constructor-arg value="outputProductUrlQ" />
+	</bean>
+
+	<bean id="visitUrlQ" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg value="visitUrlQ.#{runtimeConfigs.getDomainName()}" />
+	</bean>
+
+	<bean id="productUrlQ" class="org.apache.activemq.command.ActiveMQQueue">
+		<constructor-arg value="productUrlQ.#{runtimeConfigs.getDomainName()}" />
+	</bean>
+
+	<!-- process urls which needs to visit -->
+	<int:channel id="visitUrlChannelProducer" />
+	<jms:outbound-channel-adapter id="visitUrlOutboundAdapterId"
+		channel="visitUrlChannelProducer" connection-factory="jms.url.cachingConnectionFactory"
+		destination="visitUrlQ" />
+	<int:channel id="visitUrlChannelConsumer" />
+
+	<bean id="visitUrlListenerId"
+		class="org.springframework.integration.dsl.jms.JmsMessageDrivenChannelAdapter">
+		<constructor-arg ref="visitUrlMessageListenerContainer" />
+		<constructor-arg ref="visitUrlChannelPublishingMessageListener" />
+		<property name="outputChannel" ref="visitUrlChannelConsumer" />
+	</bean>
+
+	<int:chain input-channel="visitUrlChannelConsumer">
+
+		<!-- visit the url and download the page content -->
+		<int:service-activator method="visitUrl" ref="springIntegrationProcessor" />
+
+		<!-- make sure to filter the null html -->
+		<int:filter expression="payload != null" />
+
+		<!-- check the response type, if it's xml then needs to parse in a different 
+			way -->
+		<int:router
+			expression="(payload.get('#{T(com.vishalzanzrukia.crawler.integration.SpringIntegrationProcessor).KEY_IS_XML_RESPONSE}') == true ? 'parseXmlUrlsChannel' : 'parseUrlsChannel')" />
+
+	</int:chain>
+
+	<int:channel id="parseXmlUrlsChannel" />
+	<!-- parse the page content and extract all urls from xml page -->
+	<int:transformer ref="springIntegrationProcessor" method="parseXmlUrls"
+		input-channel="parseXmlUrlsChannel" output-channel="processUrlsChannel" />
+
+	<int:channel id="parseUrlsChannel" />
+	<!-- parse the page content and extract all urls from page -->
+	<int:transformer ref="springIntegrationProcessor" method="parseUrls"
+		input-channel="parseUrlsChannel" output-channel="processUrlsChannel" />
+
+	<int:channel id="processUrlsChannel" />
+	<int:chain input-channel="processUrlsChannel">
+
+		<!-- make sure that urls size is not zero -->
+		<int:filter expression="payload.size() > 0" />
+
+		<!-- convert urls into messages -->
+		<int:splitter id="intUrlSplitter" ref="urlSplitter" />
+
+		<!-- check whether message is product url message or not -->
+		<int:service-activator method="isProductUrl"
+			ref="springIntegrationProcessor" />
+
+		<int:recipient-list-router>
+
+			<!-- divert product url message to processProductUrlChannel -->
+			<int:recipient selector-expression="payload == true"
+				channel="processProductUrlChannel" />
+
+			<!-- divert all other url message to shouldVisitUrlChannel -->
+			<int:recipient selector-expression="payload == false"
+				channel="shouldVisitUrlChannel" />
+		</int:recipient-list-router>
+
+	</int:chain>
+
+
+	<int:channel id="processProductUrlChannel" />
+
+	<int:chain input-channel="processProductUrlChannel"
+		output-channel="productUrlChannelProducer">
+
+		<int:header-enricher>
+			<!-- trim the product url by removing extra parameters from url -->
+			<int:header overwrite="true"
+				name="#{T(com.vishalzanzrukia.crawler.util.CrawlerUtils.MESSAGE_HEADERS).URL}"
+				ref="springIntegrationProcessor" method="trimProductUrl" />
+		</int:header-enricher>
+
+		<!-- filter whether product url should be parsed or not -->
+		<int:filter ref="springIntegrationProcessor" method="shouldParse" />
+
+		<!-- no need of payload anymore, as we will use url from header -->
+		<int:transformer expression="''" />
+
+	</int:chain>
+
+	<int:channel id="shouldVisitUrlChannel" />
+
+	<int:chain input-channel="shouldVisitUrlChannel"
+		output-channel="visitUrlChannelProducer">
+
+		<!-- filter whether url should be vsited or not -->
+		<int:filter ref="springIntegrationProcessor" method="shouldVisit" />
+
+		<!-- no need of payload anymore, as we will use url from header -->
+		<int:transformer expression="''" />
+
+	</int:chain>
+
+	<int:channel id="productUrlChannelProducer" />
+
+	<jms:outbound-channel-adapter id="productUrlOutboundAdapterId"
+		channel="productUrlChannelProducer" connection-factory="jms.url.cachingConnectionFactory"
+		destination="productUrlQ" />
+	<int:channel id="productUrlChannelConsumer" />
+
+	<bean id="productUrlListenerId"
+		class="org.springframework.integration.dsl.jms.JmsMessageDrivenChannelAdapter">
+		<constructor-arg ref="productUrlMessageListenerContainer" />
+		<constructor-arg ref="productUrlChannelPublishingMessageListener" />
+		<property name="outputChannel" ref="productUrlChannelConsumer" />
+	</bean>
+
+	<int:chain input-channel="productUrlChannelConsumer"
+		output-channel="outputProductMetaChannelProducer">
+
+		<!-- download the product url page and also parse it and produce the product 
+			json -->
+		<int:service-activator method="parseProduct"
+			ref="springIntegrationProcessor" />
+
+		<!-- make sure that product is not null -->
+		<int:filter expression="payload != null" />
+
+		<!-- create 3 messages (pid, price, meta) from single product json -->
+		<int:splitter id="intProductSplitter" ref="productSplitter" />
+
+	</int:chain>
+
+	<!-- send serialized json messages to final product output queue -->
+	<int:channel id="outputProductMetaChannelProducer" />
+	<jms:outbound-channel-adapter id="outputProductOutboundAdapterId"
+		channel="outputProductMetaChannelProducer" connection-factory="jms.product.cachingConnectionFactory"
+		destination="outputProductUrlQ" />
+
+</beans>
