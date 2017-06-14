@@ -1,5 +1,6 @@
 # java-web-crawler
-This is open source web crawler example based on Java technologies with following features.
+
+### This is open source web crawler example based on Java technologies with following features.
 
 - Auto Restart after once cycle finished
 - Configuration to set time between two cycles
@@ -13,5 +14,13 @@ This is open source web crawler example based on Java technologies with followin
 - Configuration to set maximum bytes per page to download 
 - Sitemaps parsing support
 - Retry support with parsing
+
+### Technology Stack
+- Spring Boot
+- Spring Integration
+- Redis
+- Jsoup
+- ActiveMQ
+- ElasticSearch
 
 NOTE : It's still ongoing project, not ready to use yet.
