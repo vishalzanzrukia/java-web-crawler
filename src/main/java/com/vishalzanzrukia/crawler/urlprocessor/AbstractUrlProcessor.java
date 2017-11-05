@@ -62,7 +62,7 @@ public abstract class AbstractUrlProcessor implements UrlProcessor {
 	 * particular domain.
 	 */
 	protected void initDefaultFilters() {
-		this.getFilterRegexes().add(REGEXES.GENERAL_SEARCH_URL);
+//		this.getFilterRegexes().add(REGEXES.GENERAL_SEARCH_URL);
 	}
 
 	/**

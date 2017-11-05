@@ -1,6 +1,7 @@
 package com.vishalzanzrukia.crawler.parser;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -124,8 +125,11 @@ public abstract class AbstractProductParser implements ProductParser {
 					LOG.error("Not able to extract productId from product url : {}", productPageUrl);
 					throw new IllegalArgumentException("Not able to extract productId from product url : " + productPageUrl);
 				}
+				
+				//TODO : just for test
+				return new Product(productId, "test-name", "test-description", "test-keywords", "test-barcode", new BigDecimal(5), 5, Arrays.asList(4,5,6));
 
-				final String barcode = parseBarcode(document, productId);
+				/*final String barcode = parseBarcode(document, productId);
 				final BigDecimal price = parsePrice(document, productId);
 				final Integer weight = parseWeight(document, productId);
 
@@ -161,7 +165,7 @@ public abstract class AbstractProductParser implements ProductParser {
 
 					LOG.trace("Product processed successfully : {}", product);
 					return product;
-				}
+				}*/
 			}
 
 		} catch (Exception e) {

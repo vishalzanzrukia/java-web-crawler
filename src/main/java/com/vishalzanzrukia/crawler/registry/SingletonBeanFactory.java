@@ -12,7 +12,6 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.vishalzanzrukia.crawler.ProcessTriggeringBean;
 import com.vishalzanzrukia.crawler.bean.Configs;
 import com.vishalzanzrukia.crawler.bean.RuntimeConfigs;
-import com.vishalzanzrukia.crawler.esrepository.ESProductRepository;
 import com.vishalzanzrukia.crawler.parser.RobotsTxtParser;
 import com.vishalzanzrukia.crawler.util.ContentDownloader;
 import com.vishalzanzrukia.crawler.util.ContentProvider;
@@ -105,9 +104,5 @@ public class SingletonBeanFactory {
 
 	public BasicURLNormalizer getBasicURLNormalizer() {
 		return getBean(BasicURLNormalizer.class);
-	}
-
-	public ESProductRepository getESProductRepository() {
-		return new ESProductRepository();
 	}
 }

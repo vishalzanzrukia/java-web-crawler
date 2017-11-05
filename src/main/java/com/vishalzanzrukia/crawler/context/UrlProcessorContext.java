@@ -17,8 +17,10 @@ import crawlercommons.filters.basic.BasicURLNormalizer;
 public class UrlProcessorContext {
 
 	@Bean(initMethod = "register")
-	public UrlProcessorAdapter atUrlProcessor(@Value("${crawler.supported.domain.amazon.com}") final String domainName) {
+	public UrlProcessorAdapter atUrlProcessor(@Value("${crawler.supported.domain.propertyfinder.ae}") final String domainName) {
 		return new UrlProcessorAdapter(domainName);
+		//TODO : filter urls : https://www.propertyfinder.ae/ar/
+		//TODO : trim search url by removing empty value paramers
 	}
 
 	@Bean

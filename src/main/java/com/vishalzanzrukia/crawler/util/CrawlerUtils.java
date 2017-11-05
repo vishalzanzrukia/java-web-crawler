@@ -116,7 +116,8 @@ public class CrawlerUtils {
 		 * The normal product url for most of domains, some domain (like co.uk)
 		 * might have specific regex
 		 */
-		GENERAL_PRODUCT_URL("^" + REGEXES.DOMAIN_BASE_REGEX + "(product\\/index\\.jsp\\?productId\\=)((\\d)+)(.*)$"),
+//		GENERAL_PRODUCT_URL("^" + REGEXES.DOMAIN_BASE_REGEX + "(product\\/index\\.jsp\\?productId\\=)((\\d)+)(.*)$"),
+		GENERAL_PRODUCT_URL("^" + REGEXES.DOMAIN_BASE_REGEX + "(en\\/)(rent|buy|commercial-rent|commercial-buy)(\\/.+-)(\\d+)(\\.html)$"),
 
 		/** The normal product url for co.uk domain */
 		UK_PRODUCT_URL("^" + REGEXES.DOMAIN_BASE_REGEX + "(pdp\\/product\\.jsp\\?productId\\=)([0-9A-Z]+)(.*)$"),
@@ -136,6 +137,15 @@ public class CrawlerUtils {
 		}
 		public String getRegex() {
 			return regex;
+		}
+	}
+	
+	public static void main(String[] args) {
+		String regex = "^(http(s)?\\:\\/\\/www\\.propertyfinder.ae\\/)(en\\/)(rent|buy|commercial-rent|commercial-buy)(\\/.+-)(\\d+)(\\.html)$";
+		String url = "https://www.propertyfinder.ae/en/buy";
+		if(url.matches(regex)){
+			System.err.println("match");
+			System.err.println(url.replaceAll(regex, "$6"));
 		}
 	}
 

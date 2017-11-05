@@ -15,7 +15,7 @@ import com.vishalzanzrukia.crawler.parser.AmazonComProductParser;
 public class ProductParserContext {
 
 	@Bean(initMethod = "register")
-	public AmazonComProductParser atProductParser(@Value("${crawler.supported.domain.amazon.com}") final String domainName) {
+	public AmazonComProductParser atProductParser(@Value("${crawler.supported.domain.propertyfinder.ae}") final String domainName) {
 		return new AmazonComProductParser(domainName);
 	}
 }

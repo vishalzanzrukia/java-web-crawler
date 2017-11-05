@@ -63,7 +63,7 @@ public class UrlProcessorAdapter extends AbstractUrlProcessor {
 		this.trimParams = new ArrayList<>(trimParams);
 		initCommonFilters();
 	}
-
+	
 	/**
 	 * Instantiates a new url processor adapter with all default values
 	 *
@@ -101,7 +101,7 @@ public class UrlProcessorAdapter extends AbstractUrlProcessor {
 	@Override
 	public String trimProductUrl(final String produtUrl) {
 
-		final String normalProductUrlRegex = singletonBeanFactory.getCrawlerUtils().getDomainSpecificRegex(getNormalProductUrlRegex());
+		/*final String normalProductUrlRegex = singletonBeanFactory.getCrawlerUtils().getDomainSpecificRegex(getNormalProductUrlRegex());
 		final String canonicalProductUrlRegex = singletonBeanFactory.getCrawlerUtils().getDomainSpecificRegex(getCanonicalProductUrlRegex());
 
 		if (produtUrl.matches(normalProductUrlRegex)) {
@@ -113,7 +113,9 @@ public class UrlProcessorAdapter extends AbstractUrlProcessor {
 		}
 
 		LOG.warn("The given product url does not match any product url pattern : {}", produtUrl);
-		return null;
+		return null;*/
+		
+		return produtUrl;
 	}
 
 	/**
@@ -126,7 +128,7 @@ public class UrlProcessorAdapter extends AbstractUrlProcessor {
 		final String canonicalProductUrlRegex = singletonBeanFactory.getCrawlerUtils().getDomainSpecificRegex(getCanonicalProductUrlRegex());
 
 		if (productPageUrl.matches(normalProductUrlRegex)) {
-			return productPageUrl.replaceAll(normalProductUrlRegex, "$4");
+			return productPageUrl.replaceAll(normalProductUrlRegex, "$6");
 		} else if (productPageUrl.matches(canonicalProductUrlRegex)) {
 			return productPageUrl.replaceAll(canonicalProductUrlRegex, getCanonicalProductReplacementKey());
 		}
